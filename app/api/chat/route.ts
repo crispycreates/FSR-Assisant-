@@ -1,6 +1,9 @@
 import OpenAI from 'openai';
 
-export const maxDuration = 60;
+// Vercel function timeout. Hobby plan ignores anything > 10s; Pro plan
+// supports up to 300s. The OpenAI Responses API + GHL MCP roundtrip can
+// take a while when the model chains several tool calls, so we max it out.
+export const maxDuration = 300;
 
 const READ_ONLY_GHL_TOOLS = [
   'contacts_get-contact',
