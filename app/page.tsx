@@ -9,12 +9,46 @@ const NEON_MAGENTA = '#ff00e0';
 const PANEL_BG = 'rgba(12, 8, 24, 0.62)';
 const PANEL_BORDER = 'rgba(0, 240, 255, 0.28)';
 
+const STORAGE_KEY = 'fsr_chat_v1';
+
+type StoredChat = { messages: Message[]; responseId: string | null };
+
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [responseId, setResponseId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Hydrate from localStorage on mount (client-only to keep SSR happy).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as StoredChat;
+        if (Array.isArray(parsed.messages)) setMessages(parsed.messages);
+        if (typeof parsed.responseId === 'string') setResponseId(parsed.responseId);
+      }
+    } catch {
+      // corrupt storage — ignore and start fresh
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist on every change, but only after hydration so we don't wipe storage
+  // with the initial empty state on first render.
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ messages, responseId } satisfies StoredChat),
+      );
+    } catch {
+      // quota exceeded or storage disabled — silently drop
+    }
+  }, [messages, responseId, hydrated]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
