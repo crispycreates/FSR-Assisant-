@@ -77,14 +77,28 @@ export async function POST(req: Request) {
       ? body.previousResponseId
       : undefined;
 
+  const locationId = process.env.FSR_GHL_LOCATION_ID;
+
   const openai = new OpenAI({ apiKey });
+
+  // Prepend a system instruction with the GHL location ID so the model
+  // doesn't have to ask for it on every tool call. Skipped on continuation
+  // turns — the previous response already has the context.
+  const inputMessages: Array<{ role: 'system' | 'user'; content: string }> = [];
+  if (locationId && !previousResponseId) {
+    inputMessages.push({
+      role: 'system',
+      content: `The active GoHighLevel location/sub-account ID is "${locationId}". Use this whenever a GHL tool requires a locationId or location_id parameter. Do not ask the user for it.`,
+    });
+  }
+  inputMessages.push({ role: 'user', content: message });
 
   // The OpenAI SDK's public types don't yet model (a) the `mcp` tool variant
   // and (b) prompt-template IDs that imply the model, so we cast through
   // `unknown` at the boundary. The runtime contract is correct.
   const params = {
     prompt: { id: PROMPT_ID, version: PROMPT_VERSION },
-    input: [{ role: 'user', content: message }],
+    input: inputMessages,
     reasoning: { summary: 'auto' },
     ...(previousResponseId && { previous_response_id: previousResponseId }),
     tools: [

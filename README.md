@@ -31,14 +31,17 @@ set in `.env.local`.
 | `OPENAI_API_KEY`          | OpenAI key used for the Responses API call         |
 | `OPENAI_VECTOR_STORE_ID`  | Vector store ID for supplier pricing knowledge     |
 | `GHL_MCP_AUTH_TOKEN`      | Bearer token for the GHL MCP server                |
+| `FSR_GHL_LOCATION_ID`     | GHL location/sub-account ID (auto-injected)        |
 | `APP_USERNAME`            | Basic-auth username                                |
 | `APP_PASSWORD`            | Basic-auth password (use a long random string)     |
 
-All five must be set on Vercel for the deployment to function.
+All six must be set on Vercel for the deployment to function. Also, since
+this app uses `proxy.ts` (Next 16 convention, formerly `middleware.ts`), the
+auth gate replaces the old middleware filename.
 
 ## Security notes
 
-- Every request goes through `middleware.ts`, which enforces HTTP Basic Auth
+- Every request goes through `proxy.ts`, which enforces HTTP Basic Auth
   using `APP_USERNAME` / `APP_PASSWORD`. Without valid credentials the page
   and the `/api/chat` endpoint return 401.
 - The MCP `allowed_tools` list is **read-only by default**. Write tools
